@@ -22,10 +22,13 @@ struct ModeSettings {
 };
 
 const ModeSettings Modes[] = {
-    {" 5 s", 10, 7},
-    {"30 s", 30, 10},
-    {"1min", 60, 10},
-    {"5min", 5 * 30, 30}
+#if 0 // a nice short debug time value
+    {" 5 s",     10,  7},
+#endif
+    {"30 s",      30,     10},
+    {"1min",      60,     10},
+    {"5min",  5 * 60,     30},
+    {"30 m", 30 * 60, 5 * 60}
 };
 unsigned int ModeMax = sizeof(Modes) / sizeof(Modes[0]);
 
@@ -65,6 +68,37 @@ void startupAnimation(int animationDelay)
     digitalWrite(PIN_BUTTON_LIGHT, LOW);
 }
 
+void scrollText(char *message, int &pos, int animationDelay)
+{
+    int letterPos = 0;
+    int messageLength = strlen(message);
+    alpha4.clear();
+    for (
+        int messagePos = pos; 
+        (messagePos < messageLength) &&
+        (messagePos < messageLength) &&
+        (letterPos < 4); messagePos++)
+    {
+        alpha4.writeDigitAscii(letterPos++, message[messagePos]);
+    }
+    alpha4.writeDisplay();
+    delay(animationDelay);
+    pos++;
+}
+
+void doShrek()
+{
+    const char *message = "   dubious Fun?   ";
+    const unsigned int messageLength = strlen(message);
+    int pos = 0;
+    while (1) 
+    {
+        scrollText(message, pos, 250);
+        if (pos >= messageLength)
+            return;
+    }
+}
+
 void rotateMode()
 {
     if (!firstModePush)
@@ -83,6 +117,7 @@ void rotateMode()
 // Handle presses of the mode button. Returns when the main button is pressed.
 void attractLoop()
 {
+    unsigned long longPress = 0;
     unsigned long screenReset = 0;
     printPush();
     digitalWrite(PIN_MODE_LIGHT, LOW);
@@ -94,9 +129,15 @@ void attractLoop()
     {
         if (bouncerMode.update())
         {
+            longPress = millis() + 5000;
             while (0 == bouncerMode.read())
             {
                 bouncerMode.update();
+                if (millis() > longPress)
+                {
+                    doShrek();
+                    firstModePush = true;
+                }
             }
             rotateMode();
             screenReset = millis() + 5000;
@@ -155,12 +196,12 @@ void printTime()
     if (minutes)
     {
         alpha4.writeDigitAscii(0, (minutes / 10) + '0');
-        alpha4.writeDigitAscii(1, (minutes % 10) + '0' | ((uint16_t) 0x01) << 14);
+        alpha4.writeDigitAscii(1, (minutes % 10) + '0', true);
     }else {
         alpha4.writeDigitRaw(1, ((uint16_t) 0x01) << 14);
     }
-    alpha4.writeDigitAscii(2, (currentTime / 10) + '0');
-    alpha4.writeDigitAscii(3, (currentTime % 10) + '0');
+    alpha4.writeDigitAscii(2, (seconds / 10) + '0');
+    alpha4.writeDigitAscii(3, (seconds % 10) + '0');
     alpha4.writeDisplay();
 }
 
@@ -222,7 +263,7 @@ unsigned char checkButtonDelay(int delayValue, int stepValue, unsigned char anim
         // Animate "breathing" when we're past the warning threshold.
         if (animate && currentTime <= Modes[counterMode].warnTime)
         {
-            buttonLight += buttonLightDirection * 10;
+            buttonLight += buttonLightDirection * 5;
             if (buttonLight >= 255)
             {
                 buttonLightDirection = -1;
@@ -249,14 +290,6 @@ bool countdownLoop()
     currentTime = Modes[counterMode].maxTime;
     while (currentTime > 0)
     {
-//        if (currentTime > 20)
-//            alpha4.setBrightness(4);
-//        else if (currentTime <= 20 && currentTime > 15)
-//            alpha4.setBrightness(8);
-//        else if (currentTime <= 15 && currentTime > 10)
-//            alpha4.setBrightness(12);
-//        else if (currentTime <= 10)
-//            alpha4.setBrightness(15);
         printTime();
         if (checkButtonDelay(1000, 5, 1))
         {
