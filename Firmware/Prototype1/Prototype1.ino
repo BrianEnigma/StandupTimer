@@ -302,7 +302,7 @@ bool countdownLoop()
     {
         // Print failure stars, then "Push"
         printFail();
-        return;
+        return false;
     } else {
         digitalWrite(PIN_MODE_LIGHT, LOW);
         digitalWrite(PIN_BUTTON_LIGHT, LOW);
