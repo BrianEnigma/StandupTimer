@@ -68,7 +68,7 @@ void startupAnimation(int animationDelay)
     digitalWrite(PIN_BUTTON_LIGHT, LOW);
 }
 
-void scrollText(char *message, int &pos, int animationDelay)
+void scrollText(const char *message, int &pos, int animationDelay)
 {
     int letterPos = 0;
     int messageLength = strlen(message);
